@@ -28,6 +28,8 @@ class PoseDetector:
                                      smooth_landmarks=smooth_landmarks,
                                      min_detection_confidence=min_detection_confidence,
                                      min_tracking_confidence=min_tracking_confidence)
+        # Removed custom drawing specs to use default MediaPipe style
+
         self.results = None
         self.landmark_list = []
 
@@ -45,8 +47,12 @@ class PoseDetector:
         self.results = self.pose.process(img_rgb)
 
         if self.results.pose_landmarks and draw:
-            self.mp_draw.draw_landmarks(img, self.results.pose_landmarks,
-                                        self.mp_pose.POSE_CONNECTIONS)
+            # Use default MediaPipe drawing style
+            self.mp_draw.draw_landmarks(
+                img,
+                self.results.pose_landmarks,
+                self.mp_pose.POSE_CONNECTIONS
+            )
         return img
 
     def find_landmarks(self, img, draw=True):
@@ -66,8 +72,7 @@ class PoseDetector:
             for id, lm in enumerate(self.results.pose_landmarks.landmark):
                 cx, cy = int(lm.x * w), int(lm.y * h)
                 self.landmark_list.append([id, cx, cy])
-                if draw:
-                    cv2.circle(img, (cx, cy), 5, (255, 0, 0), cv2.FILLED)
+                # Removed drawing from here, find_pose handles it
         return self.landmark_list
 
     def find_angle(self, img, p1, p2, p3, draw=True):
@@ -101,19 +106,12 @@ class PoseDetector:
         if angle < 0:
             angle += 360
 
-        # Draw visualization if requested
+        # Draw angle value if requested
         if draw:
-            cv2.line(img, (x1, y1), (x2, y2), (255, 255, 255), 3)
-            cv2.line(img, (x3, y3), (x2, y2), (255, 255, 255), 3)
-            cv2.circle(img, (x1, y1), 10, (0, 0, 255), cv2.FILLED)
-            cv2.circle(img, (x1, y1), 15, (0, 0, 255), 2)
-            cv2.circle(img, (x2, y2), 10, (0, 0, 255), cv2.FILLED)
-            cv2.circle(img, (x2, y2), 15, (0, 0, 255), 2)
-            cv2.circle(img, (x3, y3), 10, (0, 0, 255), cv2.FILLED)
-            cv2.circle(img, (x3, y3), 15, (0, 0, 255), 2)
-            # Display angle value near the vertex
+            # Landmarks and connections are drawn by find_pose using the default style
+            # Only display angle value near the vertex
             cv2.putText(img, str(int(angle)), (x2 - 50, y2 + 50),
-                        cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 255), 2)
+                        cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 255), 2) # Magenta text
         return angle
 
 if __name__ == "__main__":

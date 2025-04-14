@@ -9,6 +9,8 @@ This project provides tools for real-time exercise analysis and correction using
 -   `BicepCurl.py`: Implements exercise analysis logic specifically for Bicep Curls, inheriting from `Exercise`.
 -   `OverheadPress.py`: Implements exercise analysis logic specifically for Overhead Press, inheriting from `Exercise`.
 -   `Squat.py`: Implements exercise analysis logic specifically for Squats, inheriting from `Exercise`.
+-   `Pushup.py`: Implements exercise analysis logic specifically for Push-ups, inheriting from `Exercise`.
+-   `Plank.py`: Implements exercise analysis logic specifically for Planks, inheriting from `Exercise`.
 -   `PointExtractor.py`: A simple script to demonstrate basic pose landmark detection using `PoseModule2.py`.
 -   `requirements.txt`: Lists the necessary Python packages.
 -   `samples/`: Contains sample video files for testing (you might need to create this directory and add videos).
@@ -74,6 +76,28 @@ python Squat.py --video samples/squat/1.mp4
 ```
 *(Note: The `--side` argument is not used for the Squat analysis as it primarily focuses on knee angles.)*
 
+### Push-up Analysis
+
+```bash
+# Using webcam
+python Pushup.py
+
+# Using a video file
+python Pushup.py --video path/to/your/pushup_video.mp4
+```
+*(Note: This script analyzes body straightness (hip angle) and elbow angle for rep counting.)*
+
+### Plank Analysis
+
+```bash
+# Using webcam
+python Plank.py
+
+# Using a video file
+python Plank.py --video path/to/your/plank_video.mp4
+```
+*(Note: This script analyzes body straightness (hip and knee angles) to provide form feedback.)*
+
 ### Basic Landmark Extraction Demo
 
 This script just shows the detected pose landmarks without exercise-specific analysis.
@@ -91,7 +115,7 @@ Press 'q' in the display window to quit any of the running scripts.
 ## Extending
 
 To add a new exercise:
-1.  Create a new Python file (e.g., `PushUp.py`).
-2.  Define a class that inherits from `Exercise` (e.g., `class PushUp(Exercise):`).
+1.  Create a new Python file (e.g., `NewExercise.py`).
+2.  Define a class that inherits from `Exercise` (e.g., `class NewExercise(Exercise):`).
 3.  Implement the `__init__` method (calling `super().__init__`) and the `analyze_frame(self, img)` method with the specific logic for the new exercise, calculating relevant angles using `self.get_angle()` and updating feedback/state.
-4.  Add argument parsing and a `if __name__ == '__main__':` block similar to the existing exercise scripts.
+4.  Add argument parsing and a `if __name__ == '__main__':` block similar to the existing exercise scripts (see `Pushup.py` or `Plank.py` for examples).
