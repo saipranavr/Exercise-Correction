@@ -12,3 +12,5 @@ which python
 which pip
 
 pip install -r requirements.txt
+
+# conda activate exercise_correction-env

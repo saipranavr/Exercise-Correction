@@ -1,69 +1,56 @@
 import cv2
-import PoseModule2 as pm # Ensure PoseModule2.py is in the same directory
-import time # To calculate FPS
+import time
+import argparse
+from PoseModule2 import PoseDetector # Use the refactored class
 
-# --- Configuration ---
-VIDEO_SOURCE = 0  # Use 0 for webcam, or provide a path like "your_video.mp4"
-SHOW_FPS = True   # Set to True to display Frames Per Second
+def main(video_source, show_fps):
+    """Runs the pose landmark extraction and display."""
+    cap = cv2.VideoCapture(video_source)
+    if not cap.isOpened():
+        print(f"Error: Could not open video source: {video_source}")
+        return
 
-# --- Initialization ---
-cap = cv2.VideoCapture(VIDEO_SOURCE)
-if not cap.isOpened():
-    print(f"Error: Could not open video source: {VIDEO_SOURCE}")
-    exit()
+    detector = PoseDetector()
+    prev_time = 0
 
-# Initialize the custom Pose Detector from PoseModule2
-# You might need to adjust arguments based on the PoseModule2 definition
-detector = pm.posture_detector()
+    print("Starting pose landmark extraction. Press 'q' to quit.")
 
-prev_frame_time = 0
-new_frame_time = 0
+    while True:
+        success, frame = cap.read()
+        if not success:
+            print("Video stream ended or failed to grab frame.")
+            break
 
-print("Starting pose detection. Press 'q' to quit.")
+        # Find pose and draw landmarks
+        frame = detector.find_pose(frame, draw=True)
+        # Optionally get landmark data (not drawn again here)
+        landmark_list = detector.find_landmarks(frame, draw=False)
 
-# --- Main Loop ---
-while True:
-    # 1. Read a frame from the video source
-    success, frame = cap.read()
-    if not success:
-        # If reading from a file, it might be the end of the file
-        if isinstance(VIDEO_SOURCE, str):
-            print("End of video file.")
-        else:
-            print("Error: Failed to grab frame from webcam.")
-        break
+        # Calculate and display FPS if requested
+        if show_fps:
+            current_time = time.time()
+            if prev_time > 0:
+                fps = 1 / (current_time - prev_time)
+                cv2.putText(frame, f"FPS: {int(fps)}", (10, 30),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+            prev_time = current_time
 
-    # 2. Detect the pose and draw landmarks using PoseModule2
-    # The find_person method might preprocess or find the main subject
-    frame = detector.find_person(frame, draw=True) # Set draw=True/False based on PoseModule2 capability
-    
-    # The find_landmarks method detects joints and draws them if draw=True
-    # It also returns the list of landmarks (we don't use the list here)
-    landmark_list = detector.find_landmarks(frame, draw=True) 
+        cv2.imshow("Pose Landmark Extractor", frame)
 
-    # (Optional) Access landmark data if needed, e.g.:
-    # if landmark_list:
-    #    # Example: Get coordinates of the nose (landmark 0)
-    #    nose_x, nose_y = landmark_list[0][1], landmark_list[0][2]
-    #    # print(f"Nose position: ({nose_x}, {nose_y})")
-    #    pass
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
-    # 3. Calculate and Display FPS (Optional)
-    if SHOW_FPS:
-        new_frame_time = time.time()
-        fps = 1 / (new_frame_time - prev_frame_time)
-        prev_frame_time = new_frame_time
-        cv2.putText(frame, f"FPS: {int(fps)}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+    cap.release()
+    cv2.destroyAllWindows()
+    print("Resources released.")
 
-    # 4. Display the frame with the pose drawn on it
-    cv2.imshow("Pose Detection Output", frame)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Extract and display pose landmarks using MediaPipe Pose.')
+    parser.add_argument('--video', type=str, default=None,
+                        help='Path to video file. Uses webcam (index 0) if not specified.')
+    parser.add_argument('--show_fps', action='store_true',
+                        help='Display Frames Per Second on the output window.')
+    args = parser.parse_args()
 
-    # 5. Check for exit key ('q')
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        print("Exiting...")
-        break
-
-# --- Cleanup ---
-cap.release()          # Release the video capture object
-cv2.destroyAllWindows() # Close all OpenCV windows
-print("Resources released.")
+    video_input = 0 if args.video is None else args.video
+    main(video_source=video_input, show_fps=args.show_fps)
