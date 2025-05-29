@@ -5,6 +5,7 @@ import torch.nn as nn
 from PoseModule2 import PoseDetector
 import sys
 import os
+import argparse
 
 # Add the signature model directory to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'signature_model'))
@@ -18,14 +19,19 @@ class SignatureExerciseAnalyzer:
         self.sequence_length = 30  # Number of frames to consider for temporal analysis
         self.current_sequence = []
         
-        # Exercise class mappings
+        # Updated: 11-class mapping for technique/mistake labels
         self.exercise_classes = {
-            0: "SQUAT_CORRECT",
-            1: "SQUAT_INCORRECT",
-            2: "LUNGES_CORRECT",
-            3: "LUNGES_INCORRECT",
-            4: "PLANK_CORRECT",
-            5: "PLANK_INCORRECT"
+            0: "Squats: Correct",
+            1: "Squats: Feet too wide",
+            2: "Squats: Knees inward",
+            3: "Squats: Not low enough",
+            4: "Squats: Front bent",
+            5: "Lunges: Correct",
+            6: "Lunges: Not low enough",
+            7: "Lunges: Knee passes toe",
+            8: "Planks: Correct",
+            9: "Planks: Arched back",
+            10: "Planks: Hunch back"
         }
         
         # Initialize the signature model
@@ -54,20 +60,60 @@ class SignatureExerciseAnalyzer:
         
         self.temporal_fc = nn.Linear(128 * 2, 3).cuda()  # Move to CUDA
         
-    def preprocess_frame(self, frame: np.ndarray) -> np.ndarray:
-        """Extract pose landmarks from a single frame"""
-        self.pose_detector.find_pose(frame, draw=False)
-        landmarks = self.pose_detector.find_landmarks(frame, draw=False)
+    def normalize_pose(self, landmarks):
+        """Normalize pose landmarks to be centered and scaled"""
+        # Convert landmarks to numpy array
+        landmarks = np.array(landmarks)
         
+        # Center the pose around the hip center
+        hip_center = np.mean(landmarks[[23, 24]], axis=0)  # Average of left and right hip
+        landmarks = landmarks - hip_center
+        
+        # Scale the pose to have a consistent size
+        scale = np.max(np.abs(landmarks))
+        if scale > 0:
+            landmarks = landmarks / scale
+            
+        return landmarks
+        
+    def rotate_pose(self, landmarks):
+        """Rotate pose to align with a standard orientation"""
+        # Convert landmarks to numpy array
+        landmarks = np.array(landmarks)
+        
+        # Get shoulder and hip vectors
+        shoulder_vector = landmarks[12] - landmarks[11]  # Right shoulder - Left shoulder
+        hip_vector = landmarks[24] - landmarks[23]  # Right hip - Left hip
+        
+        # Calculate rotation angle to align shoulders horizontally
+        angle = np.arctan2(shoulder_vector[1], shoulder_vector[0])
+        rotation_matrix = np.array([
+            [np.cos(angle), -np.sin(angle)],
+            [np.sin(angle), np.cos(angle)]
+        ])
+        
+        # Apply rotation to x,y coordinates
+        landmarks[:, :2] = np.dot(landmarks[:, :2], rotation_matrix.T)
+        
+        return landmarks
+        
+    def preprocess_frame(self, frame: np.ndarray) -> np.ndarray:
+        """Extract pose landmarks from a single frame and draw the pose on the frame"""
+        self.pose_detector.find_pose(frame, draw=True)  # Draw pose skeleton
+        landmarks = self.pose_detector.find_landmarks(frame, draw=False)
         if not landmarks:
             return None
-            
         # Convert landmarks to a flat array of coordinates
         pose_data = []
         for landmark in landmarks:
             pose_data.extend([landmark[1], landmark[2], 0])  # x, y, z (z=0 for 2D)
-        
-        return np.array(pose_data)
+        # Reshape to [33, 3] for processing
+        pose_data = np.array(pose_data).reshape(-1, 3)
+        # Normalize and rotate the pose
+        pose_data = self.normalize_pose(pose_data)
+        pose_data = self.rotate_pose(pose_data)
+        # Flatten back to 1D array
+        return pose_data.flatten()
     
     def process_video(self, video_path: str) -> dict[str, list[float]]:
         """Process a video file and return predictions from both models"""
@@ -173,13 +219,21 @@ class SignatureExerciseAnalyzer:
         }
 
 if __name__ == "__main__":
-    # Example usage
-    analyzer = SignatureExerciseAnalyzer(model_path="signature_model/pretrained_weights/ours.pt")
-    
-    # Process the specified video file
-    video_path = r"C:\Users\saipr\Documents\GitHub\Exercise-Correction\samples\squat\1.mp4"
-    results = analyzer.process_video(video_path)
-    
+    parser = argparse.ArgumentParser(description="Signature Exercise Analyzer")
+    parser.add_argument('--video', type=str, default='0', help='Path to video file or camera index (default: 0 for webcam)')
+    parser.add_argument('--model', type=str, default="signature_model/pretrained_weights/ours.pt", help='Path to model weights')
+    args = parser.parse_args()
+
+    analyzer = SignatureExerciseAnalyzer(model_path=args.model)
+
+    # Determine if input is int (camera) or file path
+    try:
+        video_input = int(args.video)
+    except ValueError:
+        video_input = args.video
+
+    results = analyzer.process_video(video_input)
+
     # Print overall predictions
     if results['temporal_predictions']:
         print("\nOverall Temporal Analysis:")
@@ -187,7 +241,7 @@ if __name__ == "__main__":
         print(f"Correct: {avg_temporal[0]:.2f}")
         print(f"Incorrect: {avg_temporal[1]:.2f}")
         print(f"Neutral: {avg_temporal[2]:.2f}")
-    
+
     if results['signature_predictions']:
         print("\nOverall Signature Analysis:")
         # Get most common technique class

@@ -119,3 +119,19 @@ To add a new exercise:
 2.  Define a class that inherits from `Exercise` (e.g., `class NewExercise(Exercise):`).
 3.  Implement the `__init__` method (calling `super().__init__`) and the `analyze_frame(self, img)` method with the specific logic for the new exercise, calculating relevant angles using `self.get_angle()` and updating feedback/state.
 4.  Add argument parsing and a `if __name__ == '__main__':` block similar to the existing exercise scripts (see `Pushup.py` or `Plank.py` for examples).
+
+## Running SignatureExerciseAnalyzer with a video file or webcam
+
+You can run the analyzer on a video file or your webcam using the --video argument:
+
+**To use a video file:**
+```
+python SignatureExerciseAnalyzer.py --video path/to/your/video.mp4
+```
+
+**To use your webcam (default):**
+```
+python SignatureExerciseAnalyzer.py --video 0
+```
+
+If you omit the --video argument, the default webcam (index 0) will be used.
