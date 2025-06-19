@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Personal Trainer</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <h1>AI Personal Trainer</h1>
+    <div class="container">
+        <video id="video" width="640" height="480" autoplay playsinline></video>
+        <canvas id="canvas" width="640" height="480"></canvas>
+    </div>
+    <div id="feedback-container">
+        <h2>Feedback</h2>
+        <p id="feedback-text">Initializing...</p>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
